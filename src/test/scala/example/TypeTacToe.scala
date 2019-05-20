@@ -14,6 +14,8 @@ class TypeTacToe extends AsyncFreeSpec with Matchers {
   Win by getting 3 in a row!
    */
 
+  trait Win[A]
+
 
   "Playing a game" in {
 
