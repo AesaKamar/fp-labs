@@ -16,26 +16,25 @@ class TypeTacToe extends AsyncFreeSpec with Matchers {
 
   trait Win[A]
 
-  sealed trait X
-  case object X extends X
-  sealed trait O
-  case object O extends X
+//  trait X
+//  trait O
 
+  /*
   trait ThreeConnect[A]
   trait DiagonalConnect[A]
   trait HorizontalConnect[A]
   trait VerticalConnect[A]
+   */
 
-  trait N[A]
-  trait NE[A]
-  trait E[A]
-  trait SE[A]
-  trait S[A]
-  trait SW[A]
-  trait W[A]
-  trait NW[A]
-  trait C[A]
+  /*
+  trait NW[A]; trait N[A]; trait NE[A]
 
+  trait W[A];  trait C[A]; trait E[A]
+
+  trait SW[A]; trait S[A]; trait SE[A]
+   */
+
+  /*
   // How do you win though?
   implicit def youWinIf3Connect[A](implicit ev: ThreeConnect[A]): Win[A] = ???
 
@@ -58,16 +57,20 @@ class TypeTacToe extends AsyncFreeSpec with Matchers {
   implicit def diagonalConnectIfForwardSlash[A](implicit evSW: SW[A], evC: C[A], evNE: NE[A]): DiagonalConnect[A] = ???
   implicit def diagonalConnectIfBackSlash[A](implicit evNW: NW[A], evC: C[A], evSE: SE[A]):    DiagonalConnect[A] = ???
 
+   */
+
   "Playing a game" in {
 
-//    implicit val move1: N[O] = ???
-//    implicit val move2: C[O] = ???
-//    implicit val move3: S[O] = ???
-//
-//    implicit val move4: N[X] = ???
-//    implicit val move5: C[X] = ???
-//    implicit val move6: S[X] = ???
-//
+    /*
+    implicit val move1: N[O] = ???
+    implicit val move2: C[O] = ???
+    implicit val move3: S[O] = ???
+
+    implicit val move4: N[X] = ???
+    implicit val move5: C[X] = ???
+    implicit val move6: S[X] = ???
+     */
+
 //    implicitly[Win[X]]
 //    implicitly[Win[O]]
     succeed
