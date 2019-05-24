@@ -20,7 +20,18 @@ class MapMergeMonoid extends AsyncFreeSpec with Matchers with ChainingSyntax {
       }
 
     def merge(a: Map[Char, Int], b: Map[Char, Int]): Map[Char, Int] =
-      b.foldLeft(a) { case (m, (k, v)) => m.pipe(updateWith(_, k, v)) }
+      b.foldLeft(a) { case (m, (k, v)) => updateWith(m, k, v) }
+
+    def mergeKeysImpl(a: Map[Char, Int], b: Map[Char, Int]): Map[Char, Int] = {
+      val keys = a.keys ++ b.keys
+
+      keys.map { k =>
+        for {
+          aVal <- a.get(k)
+          bVal <- b.get(k)
+        } yield k -> (aVal + bVal)
+      }.flatten.toMap
+    }
 
     merge(m1, m2) shouldBe mSum
   }
