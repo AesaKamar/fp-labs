@@ -3,13 +3,13 @@ sudo: false
 scala:
   - 2.11.12
   - 2.12.8
-  - 2.13.0-RC1
+  - 2.13.1
 jdk:
   - oraclejdk8
   - openjdk11
 matrix:
   include:
-  - scala: 2.12.8
+  - scala: 2.13.1
     jdk: oraclejdk9
 script:
   sbt ++$TRAVIS_SCALA_VERSION scalafmtSbtCheck scalafmtCheck test

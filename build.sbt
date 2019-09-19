@@ -3,13 +3,14 @@ lazy val root = (project in file("."))
     organization := "com.github.aesakamar",
     name := "scala-demos",
     version := "0.1.0-SNAPSHOT",
-    scalaVersion := "2.12.8",
+    scalaVersion := "2.13.1",
     scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-Yrangepos"),
     libraryDependencies ++= Seq(
-      "ai.x"          %% "diff"      % "2.0.1",
-      "com.lihaoyi"   %% "pprint"    % "0.5.4",
-      "org.typelevel" %% "cats-core" % "2.0.0-M1",
-      "org.scalatest" %% "scalatest" % "3.0.5" % Test),
+      "ai.x"          %% "diff"        % "2.0.1",
+      "com.lihaoyi"   %% "pprint"      % "0.5.4",
+      "org.typelevel" %% "cats-core"   % "2.0.0",
+      "org.typelevel" %% "cats-effect" % "2.0.0",
+      "org.scalatest" %% "scalatest"   % "3.0.5" % Test),
     scalafmtOnCompile := false,
     // FYI: https://www.scala-sbt.org/1.0/docs/Using-Sonatype.html
     publishTo := {
