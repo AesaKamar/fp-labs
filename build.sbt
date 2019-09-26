@@ -40,11 +40,12 @@ lazy val root = (project in file("."))
       "-Ycache-macro-class-loader:last-modified" // and macro definitions. This can lead to performance improvements.
     ),
     libraryDependencies ++= Seq(
-      "com.lihaoyi"    %% "pprint"      % "0.5.5",
-      "org.typelevel"  %% "cats-core"   % "2.0.0",
-      "org.typelevel"  %% "cats-effect" % "2.0.0",
-      "org.scalatest"  %% "scalatest"   % "3.2.0-M1" % Test,
-      "org.scalacheck" %% "scalacheck"  % "1.14.1" % Test),
+      "com.lihaoyi"       %% "pprint"                   % "0.5.5",
+      "org.typelevel"     %% "cats-core"                % "2.0.0",
+      "org.typelevel"     %% "cats-effect"              % "2.0.0",
+      "org.scalatestplus" %% "scalatestplus-scalacheck" % "3.1.0.0-RC2",
+      "org.scalatest"     %% "scalatest"                % "3.2.0-M1" % Test,
+      "org.scalacheck"    %% "scalacheck"               % "1.14.1" % Test),
     scalafmtOnCompile := false,
     // FYI: https://www.scala-sbt.org/1.0/docs/Using-Sonatype.html
     publishTo := {
