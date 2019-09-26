@@ -39,6 +39,10 @@ class Immutability extends AsyncFreeSpec with ChainingSyntax {
     }
   }
 
+  "Lets move onto an example of why Immutability might be useful in helping us understand our programs better" +
+    "" +
+    ""
+
   object TheListSortingMan {
 
     class SortedList private[TheListSortingMan] (val list: List[Int])
@@ -65,7 +69,7 @@ class Immutability extends AsyncFreeSpec with ChainingSyntax {
     succeed
   }
 
-  def isSortedI(s: TheListSortingMan.SortedList) = isSorted(s.list)
+  def isThisImmutableSortedListSorted(s: TheListSortingMan.SortedList) = isSorted(s.list)
 
   def isSorted[A: Ordering](s: List[A]): Boolean = s match {
     case Nil     => true
@@ -90,13 +94,13 @@ class Immutability extends AsyncFreeSpec with ChainingSyntax {
 
       def sort(list: List[Int]): SortedList = new SortedList(list.sorted)
     }
-    def isSortedM(s: TheMutableListSortingMan.SortedList) = isSorted(s.list)
+    def isThisMutableSortedListSorted(s: TheMutableListSortingMan.SortedList) = isSorted(s.list)
 
     val variableSortedList = TheMutableListSortingMan.sort(List(3, 2, 1))
 
     "if we are given the ability to mutate data, we can invalidate the properties weeworked so hard to set up" in {
       variableSortedList.list = List(8, 3, 1)
-      isSortedM(variableSortedList) mustBe false
+      isThisMutableSortedListSorted(variableSortedList) mustBe false
     }
 
     "Lets simulate some pesky external agent who might modify our data" - {
@@ -110,7 +114,7 @@ class Immutability extends AsyncFreeSpec with ChainingSyntax {
 
           seemsFineAndSafeToRunThisFunction(sortedList)
 
-          isSortedM(sortedList)
+          isThisMutableSortedListSorted(sortedList)
         })
       }
 
@@ -120,7 +124,7 @@ class Immutability extends AsyncFreeSpec with ChainingSyntax {
 
           //sortedList.list = sortedList.list :+ 0
 
-          isSortedI(sortedList)
+          isThisImmutableSortedListSorted(sortedList)
         })
       }
 
@@ -128,8 +132,9 @@ class Immutability extends AsyncFreeSpec with ChainingSyntax {
   }
 
   "CONCLUSION:" - {
-    "Because mutability allows us to invalidate at runtime, properties we set into our Type Systems" +
-      "We choose not to use it because it makes things harder to reason about" in succeed
+    "Because mutability allows us to invalidate properties we set into our Type Systems at runtime, " +
+      "And acknowledging that we want our programs to be unsurprising, where runtime behavior can be described at compile-time, " +
+      "We choose to forgo mutability in favor of programs which are easy to reason about" in succeed
   }
 
 }
