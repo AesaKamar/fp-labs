@@ -35,7 +35,13 @@ class Immutability extends AsyncFreeSpec with ChainingSyntax {
       }
 
       val bigList = concatenate(smallList1, smallList2)
-      "then the output should be the same" in {
+      "then the output of a function that takes them as arguments should be the same" in {
+        bigList mustEqual (1 to 10).toList
+      }
+      "regardless of when, or how many times we execute things" in {
+        bigList mustEqual (1 to 10).toList
+        bigList mustEqual (1 to 10).toList
+        bigList mustEqual (1 to 10).toList
         bigList mustEqual (1 to 10).toList
       }
 
