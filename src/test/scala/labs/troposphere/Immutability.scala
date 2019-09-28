@@ -72,7 +72,7 @@ class Immutability extends AsyncFreeSpec with ChainingSyntax {
   }
   "Nobody else can make an instance of SortedList. " +
     "Go ahead and try it!" - {
-    //val arghICantDoThis = new TheListSortingMan.SortedList(Nil)
+//    val arghICantDoThis = new TheListSortingMan.SortedList(Nil)
   }
 
   "SortedList is always guaranteed to be sorted, since: " +
@@ -92,7 +92,7 @@ class Immutability extends AsyncFreeSpec with ChainingSyntax {
     }
     def isThisMutableSortedListSorted(s: TheMutableListSortingMan.SortedList) = isSorted(s.list)
 
-    "TheMutableListSortingMan and TheLisSortingMan say that they do the same things" in {
+    "TheMutableListSortingMan and TheListSortingMan say that they do the same things" in {
 
       val startingList = List(3, 2, 1, 0)
       TheMutableListSortingMan.sort(startingList).list mustEqual TheListSortingMan.sort(startingList).list
@@ -129,7 +129,7 @@ class Immutability extends AsyncFreeSpec with ChainingSyntax {
         check(forAll { randomList: List[Int] =>
           val sortedList = TheListSortingMan.sort(randomList)
 
-          //sortedList.list = sortedList.list :+ 0
+//          sortedList.list = sortedList.list :+ 0
 
           isThisImmutableSortedListSorted(sortedList)
         })
