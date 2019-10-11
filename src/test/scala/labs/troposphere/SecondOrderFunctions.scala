@@ -268,7 +268,7 @@ class SecondOrderFunctions extends AsyncFreeSpec with ChainingSyntax {
         |   F[A]      +-->  empt: B  |
         |+---------+  |  +---------+-+
         ||         |  |            |
-        ||  e1: A  +--+            |   B
+        ||  e1: A  +--+ (B, A)=> B |         B
         ||         |  |          +-v----------+
         ||  e2: A  +--+          |  e1: B     |
         ||         |  |          +------------+
