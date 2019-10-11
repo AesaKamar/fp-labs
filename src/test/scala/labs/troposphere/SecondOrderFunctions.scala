@@ -158,6 +158,33 @@ class SecondOrderFunctions extends AsyncFreeSpec with ChainingSyntax {
         foldedList mustBe Apple
       }
 
+      "List of Booleans where if any is true, all is true" in {
+        val boolList = List(true, false, false)
+
+        val foldedBoolList = boolList.foldl(true)((first: Boolean, second: Boolean) => first || second)
+
+        foldedBoolList mustBe true
+
+      }
+
+      "List of Booleans where if any is false, all is false" in {
+        val boolList = List(true, false, false)
+
+        val foldedBoolList = boolList.foldl(true)((first: Boolean, second: Boolean) => first && second)
+
+        foldedBoolList mustBe false
+
+      }
+
+      "List of Numbers to Add" in {
+        val numList = List(1,2,3,4)
+
+        val added = numList.foldl(0)((first: Int, second: Int) => first + second)
+
+        added mustBe 10
+      }
+
+
       "Option" in {
         val foldedOption = Option("I EXIST").foldl(Apple)((_, _) => Apple)
 
