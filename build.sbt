@@ -44,6 +44,7 @@ lazy val root = (project in file("."))
       "com.lihaoyi"       %% "pprint"                   % "0.5.5",
       "org.typelevel"     %% "cats-core"                % "2.0.0",
       "org.typelevel"     %% "cats-effect"              % "2.0.0",
+      "io.higherkindness" %% "droste-core"              % "0.8.0",
       "org.scalatestplus" %% "scalatestplus-scalacheck" % "3.1.0.0-RC2",
       "org.scalatest"     %% "scalatest"                % "3.2.0-M1" % Test,
       "org.scalacheck"    %% "scalacheck"               % "1.14.1" % Test),
@@ -77,6 +78,9 @@ lazy val root = (project in file("."))
       </developers>
     })
   .settings(mimaSettings)
+
+addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full)
+
 
 val mimaSettings = MimaPlugin.mimaDefaultSettings ++ Seq(mimaPreviousArtifacts := {
   val previousVersions: Set[String] = Set.empty // e.g. Set("0.1.0", "0.1.1")
