@@ -84,7 +84,6 @@ object BTree extends ChainingSyntax {
         ltKs.foldLeft(foldLeft(gtK, b)(f)) { case (b, (_, bT)) => foldLeft(bT, b)(f) }
       case Leaf(myMapping) => myMapping.values.toList.foldl(b)(f)
     }
-
     override def foldRight[A, B](fa: BTree[K, A], lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] = ???
   }
 
@@ -106,22 +105,12 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with ChainingSyntax 
     }
     "combining way too full of leaves to be reasonable" in {
       val res1 = (Leaf(Map.empty): BTree[Int, Int])
-        .combine(Leaf(LazyList.from(15).take(30).map(x => (x, x)).toMap))
+        .combine(Leaf(LazyList.from(15).take(15).map(x => (x, x)).toMap))
 
       val res2 = (Leaf(Map.empty): BTree[Int, Int])
         .combine(Leaf(LazyList.from(0).take(15).map(x => (x, x)).toMap))
 
-      pprint.log(res1, height = 1000)
-      pprint.log(res1.foldl(Set.empty[Int])(_ + _))
-      pprint.log(res2, height = 1000)
-      pprint.log(res2.foldl(Set.empty[Int])(_ + _))
-
-      pprint.log(res2.combine(res1), height = 1000)
-      pprint.log(res1.combine(res2), height = 1000)
-      pprint.log(res2.combine(res1).foldl(Set.empty[Int])(_ + _))
-      pprint.log(res1.combine(res2).foldl(Set.empty[Int])(_ + _))
-
-      succeed
+      res1.combine(res2).foldl(Set.empty[Int]){case (a, b) => a.+(b) } mustEqual (0 to 30).toSet
     }
   }
 
