@@ -34,9 +34,10 @@ final case class Leaf[K, V](myMapping: Map[K, V]) extends BTree[K, V]
 object BTree extends ChainingSyntax {
   val reasonableBranchingFactor: Int = Math.pow(2, 3).toInt
 
-  def insert[K: Ordering, V](bT: BTree[K, V])(k: K, v: V): BTree[K, V] =
+  def insert[K, V](bT: BTree[K, V])(k: K, v: V)(implicit ord: Ordering[K]): BTree[K, V] = {
+    import ord.mkOrderingOps
     bT match {
-      case Leaf(myMapping) if myMapping.size < reasonableBranchingFactor =>
+      case Leaf(myMapping) if myMapping.size <= reasonableBranchingFactor =>
         Leaf(myMapping.updated(k, v))
       case Leaf(myMapping) =>
         val nextLayer =
@@ -44,14 +45,15 @@ object BTree extends ChainingSyntax {
             .grouped(myMapping.size / reasonableBranchingFactor)
             .map(m => (m.keySet.max, Leaf(m)))
             .toMap
-        Internal(nextLayer, Monoid[BTree[K, V]].empty)
-      case Internal(lts, gts) if Ordering[K].lt(k, lts.keySet.max) =>
-        val (kU, bU) = lts.find { case (mK, mV) => Ordering[K].lt(k, mK) }.get
+        Internal(nextLayer, Leaf(Map(k -> v)))
+      case Internal(lts, gts) if k <= lts.keySet.max =>
+        val (kU, bU) = lts.find { case (mK, mV) => k <= mK }.get
         Internal(lts.updated(kU, insert(bU)(k, v)), gts)
-      case Internal(lts, gts) if Ordering[K].gt(k, lts.keySet.max) =>
+      case Internal(lts, gts) if k > lts.keySet.max =>
         Internal(lts, insert(gts)(k, v))
 
     }
+  }
 
   def foldLeftWithKeys[K, A, B](fa: BTree[K, A], b: B)(f: (B, (K, A)) => B): B = fa match {
     case Internal(ltKs, gtK) =>
@@ -62,11 +64,12 @@ object BTree extends ChainingSyntax {
   implicit def monoidInstance[K: Ordering, V]: Monoid[BTree[K, V]] = new Monoid[BTree[K, V]] {
     override def empty: BTree[K, V] = Leaf(Map.empty)
     override def combine(x: BTree[K, V], y: BTree[K, V]): BTree[K, V] = (x, y) match {
-      case (Leaf(mA), Leaf(mB)) if mA.size + mB.size <= reasonableBranchingFactor =>
+      case (a @ Leaf(mA), b @ Leaf(mB)) if mA.size + mB.size <= reasonableBranchingFactor =>
         Leaf(mA <+> mB)
-      case (Leaf(mA), Leaf(mB)) if mA.size + mB.size > reasonableBranchingFactor =>
+      case (a @ Leaf(mA), b @ Leaf(mB)) if mA.size + mB.size > reasonableBranchingFactor =>
         (mA <+> mB).foldLeft(empty) { case (b, (k, v)) => insert(b)(k, v) }
-      case (a, b) => foldLeftWithKeys(b, a) { case (acc, (k, v)) => insert(acc)(k, v) }
+      case (a, b) =>
+        foldLeftWithKeys(a, b) { case (acc, (k, v)) => insert(acc)(k, v) }
     }
   }
 
@@ -103,14 +106,25 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with ChainingSyntax 
       (Leaf(Map(1 -> "a")): BTree[Int, String])
         .combine(Leaf(Map(2 -> "b"))) mustBe Leaf(Map(1 -> "a", 2 -> "b"))
     }
+    "foldLeftWithKeys should resolve into a list containing all elements" in {
+      val tree = (Leaf(Map.empty): BTree[Int, Int])
+        .combine(Leaf(LazyList.from(0).take(5).map(x => (x, x)).toMap))
+
+      BTree.foldLeftWithKeys(tree, List.empty[(Int, Int)]) { case (b, (k, a)) => b.appended((k, a)) } mustEqual
+        LazyList.from(0).take(5).map(x => (x, x))
+    }
+
     "combining way too full of leaves to be reasonable" in {
       val res1 = (Leaf(Map.empty): BTree[Int, Int])
-        .combine(Leaf(LazyList.from(15).take(15).map(x => (x, x)).toMap))
+        .combine(Leaf(LazyList.from(0).take(10).map(x => (x, x)).toMap))
 
       val res2 = (Leaf(Map.empty): BTree[Int, Int])
-        .combine(Leaf(LazyList.from(0).take(15).map(x => (x, x)).toMap))
+        .combine(Leaf(LazyList.from(10).take(10).map(x => (x, x)).toMap))
 
-      res1.combine(res2).foldl(Set.empty[Int]){case (a, b) => a.+(b) } mustEqual (0 to 30).toSet
+      val res3 = (Leaf(Map.empty): BTree[Int, Int])
+        .combine(Leaf(LazyList.from(20).take(10).map(x => (x, x)).toMap))
+
+      res1.combine(res2).combine(res3).tap(pprint.log(_)).foldl(Set.empty[Int]) { case (a, b) => a.+(b) } mustEqual (0 until 30).toSet
     }
   }
 
