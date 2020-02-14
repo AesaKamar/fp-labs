@@ -34,8 +34,9 @@ final case class Internal[K: Ordering, V](
 final case class Leaf[K, V](myMapping: Map[K, V]) extends BTree[K, V]
 
 object BTree extends ChainingSyntax {
-  val reasonableBranchingFactor: Int = Math.pow(2, 2).toInt
+  val reasonableBranchingFactor: Int = Math.pow(2, 3).toInt
 
+  def empty[K, V] : BTree[K, V] = Leaf(Map.empty[K, V])
 
   def insert[K, V](bT: BTree[K, V])(k: K, v: V)(implicit ord: Ordering[K]): BTree[K, V] = {
     import ord.mkOrderingOps
@@ -73,7 +74,7 @@ object BTree extends ChainingSyntax {
   }
 
   implicit def monoidInstance[K: Ordering, V]: Monoid[BTree[K, V]] = new Monoid[BTree[K, V]] {
-    override def empty: BTree[K, V] = Leaf(Map.empty)
+    override def empty: BTree[K, V] = BTree.empty[K, V]
     override def combine(x: BTree[K, V], y: BTree[K, V]): BTree[K, V] = (x, y) match {
       case (a @ Leaf(mA), b @ Leaf(mB)) if mA.size + mB.size <= reasonableBranchingFactor =>
         Leaf(mA <+> mB)
@@ -135,6 +136,16 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with Inside with Cha
       res1.combine(res2).foldl(Set.empty[Int]) { case (a, b) => a.+(b) } mustEqual (0 until 16).toSet
     }
 
+    "combining really biglists" in {
+      val res1 = (Leaf(Map.empty): BTree[Int, Int])
+        .combine(Leaf(LazyList.from(0).take(50).map(x => (x, x)).toMap))
+
+      val res2 = (Leaf(Map.empty): BTree[Int, Int])
+        .combine(Leaf(LazyList.from(50).take(50).map(x => (x, x)).toMap))
+
+      res1.combine(res2).foldl(Set.empty[Int]) { case (a, b) => a.+(b) } mustEqual (0 until 100).toSet
+    }
+
   }
 
   "Insert" - {
@@ -148,7 +159,7 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with Inside with Cha
           case Internal(maxK, thingsWithLessThanKCanBeFoundHere, thingsWithMoreThanKCanBeFoundHere) =>
             inside(thingsWithLessThanKCanBeFoundHere)(_.keySet.max must (be <= maxK))
             inside(thingsWithMoreThanKCanBeFoundHere)(
-              BTree.foldLeftWithKeys(_, Set.empty[K]) { case (b, (k, v)) => b + k }.maxOption.map(_ must (be > maxK)))
+              BTree.foldLeftWithKeys(_, Set.empty[K]) { case (b, (k, v)) => b + k }.maxOption.map(_ must (be >= maxK)))
             validate(thingsWithMoreThanKCanBeFoundHere)
             thingsWithLessThanKCanBeFoundHere.foreach(x => validate(x._2))
 
@@ -157,12 +168,12 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with Inside with Cha
       }
 
       val res1 = (Leaf(Map.empty): BTree[Int, Int])
-        .combine(Leaf(LazyList.from(0).take(15).map(x => (x, x)).toMap))
+        .combine(Leaf(LazyList.from(0).take(50).map(x => (x, x)).toMap))
 
       val res2 = (Leaf(Map.empty): BTree[Int, Int])
-        .combine(Leaf(LazyList.from(15).take(15).map(x => (x, x)).toMap))
+        .combine(Leaf(LazyList.from(50).take(50).map(x => (x, x)).toMap))
 
-      validate(res1.combine(res2).tap(pprint.log(_, height=100)))
+      validate(res1.combine(res2))
     }
 
     "bTree internal nodes should not have more than the reasonableBranchingFactor number of internal nodes" in {
@@ -172,18 +183,36 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with Inside with Cha
           case Internal(maxK, thingsWithLessThanKCanBeFoundHere, thingsWithMoreThanKCanBeFoundHere) =>
             inside(thingsWithLessThanKCanBeFoundHere)(_.size must be <= BTree.reasonableBranchingFactor)
             thingsWithLessThanKCanBeFoundHere.foreach(x => validate(x._2))
-          case Leaf(myMapping) => ()
+          case Leaf(myMapping) =>
+            inside(myMapping)(_.size must be <= BTree.reasonableBranchingFactor)
+            ()
         }
       }
       val res1 = (Leaf(Map.empty): BTree[Int, Int])
-        .combine(Leaf(LazyList.from(0).take(5).map(x => (x, x)).toMap))
+        .combine(Leaf(LazyList.from(0).take(50).map(x => (x, x)).toMap))
 
       val res2 = (Leaf(Map.empty): BTree[Int, Int])
-        .combine(Leaf(LazyList.from(5).take(5).map(x => (x, x)).toMap))
+        .combine(Leaf(LazyList.from(50).take(50).map(x => (x, x)).toMap))
 
-      validate(res1.combine(res2).tap(pprint.log(_)))
+      validate(res1.combine(res2))
 
     }
+  }
+
+  "visualizing bTrees that point to pages of records" in {
+    def mkPage(letter: String) : List[String] = LazyList.continually(letter).take(10).toList
+
+    val emptyPageTree = BTree.empty[Char, List[String]]
+
+    val indexedPages = ('a' to 'z').map(char => char -> List.fill(10)(char.toString)).toList
+
+
+    val completeBTree = indexedPages.foldl(emptyPageTree){case (bTree, (char, page)) =>  BTree.insert(bTree)(char, page)}
+
+    pprint.log(completeBTree)
+
+    succeed
+
   }
 
 }
