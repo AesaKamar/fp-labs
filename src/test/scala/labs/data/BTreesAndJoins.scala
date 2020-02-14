@@ -6,9 +6,10 @@ import cats._
 import cats.data._
 import org.scalatest.matchers.must.Matchers
 import cats.implicits._
+import org.scalatest.{Assertion, Inside}
 
-import scala.annotation.tailrec
-import scala.concurrent.Future
+import org.scalacheck.Properties
+import org.scalacheck.Prop.forAll
 import scala.util.ChainingSyntax
 
 /**
@@ -26,37 +27,47 @@ object BTreesAndJoins {}
 sealed trait BTree[K, V]
 final case class Internal[K: Ordering, V](
     // For each K in Map, we push all the elements ordered earlier than each K down to subtrees
+    maxK: K,
     thingsWithLessThanKCanBeFoundHere: Map[K, BTree[K, V]],
     thingsWithMoreThanKCanBeFoundHere: BTree[K, V])
     extends BTree[K, V]
 final case class Leaf[K, V](myMapping: Map[K, V]) extends BTree[K, V]
 
 object BTree extends ChainingSyntax {
-  val reasonableBranchingFactor: Int = Math.pow(2, 3).toInt
+  val reasonableBranchingFactor: Int = Math.pow(2, 2).toInt
+
 
   def insert[K, V](bT: BTree[K, V])(k: K, v: V)(implicit ord: Ordering[K]): BTree[K, V] = {
     import ord.mkOrderingOps
     bT match {
-      case Leaf(myMapping) if myMapping.size <= reasonableBranchingFactor =>
+      case Leaf(myMapping) if myMapping.size < reasonableBranchingFactor =>
         Leaf(myMapping.updated(k, v))
-      case Leaf(myMapping) =>
+      case Leaf(myMapping) if myMapping.size == reasonableBranchingFactor && k >= myMapping.keySet.max =>
         val nextLayer =
           myMapping
-            .grouped(myMapping.size / reasonableBranchingFactor)
+            .grouped(myMapping.size / reasonableBranchingFactor )
             .map(m => (m.keySet.max, Leaf(m)))
             .toMap
-        Internal(nextLayer, Leaf(Map(k -> v)))
-      case Internal(lts, gts) if k <= lts.keySet.max =>
+        Internal(myMapping.keySet.max, nextLayer, Leaf(Map(k -> v)))
+      case Leaf(myMapping) if myMapping.size == reasonableBranchingFactor && k < myMapping.keySet.max =>
+        val updatedMapping = myMapping.updated(k, v)
+        val nextLayer =
+          updatedMapping
+            .grouped(updatedMapping.size / (reasonableBranchingFactor /2))
+            .map(m => (m.keySet.max, Leaf(m)))
+            .toMap
+        Internal(updatedMapping.keySet.max, nextLayer, Leaf(Map()))
+      case Internal(maxK, lts, gts) if k <= lts.keySet.max =>
         val (kU, bU) = lts.find { case (mK, mV) => k <= mK }.get
-        Internal(lts.updated(kU, insert(bU)(k, v)), gts)
-      case Internal(lts, gts) if k > lts.keySet.max =>
-        Internal(lts, insert(gts)(k, v))
+        Internal(maxK, lts.updated(kU, insert(bU)(k, v)), gts)
+      case Internal(maxK, lts, gts) if k > lts.keySet.max =>
+        Internal(k, lts, insert(gts)(k, v))
 
     }
   }
 
   def foldLeftWithKeys[K, A, B](fa: BTree[K, A], b: B)(f: (B, (K, A)) => B): B = fa match {
-    case Internal(ltKs, gtK) =>
+    case Internal(maxK, ltKs, gtK) =>
       ltKs.foldLeft(foldLeftWithKeys(gtK, b)(f)) { case (b, (_, bT)) => foldLeftWithKeys(bT, b)(f) }
     case Leaf(myMapping) => myMapping.toList.foldl(b)(f)
   }
@@ -75,15 +86,15 @@ object BTree extends ChainingSyntax {
 
   implicit def functorInstance[K: Ordering] = new Functor[BTree[K, *]] {
     override def map[A, B](fa: BTree[K, A])(f: A => B): BTree[K, B] = fa match {
-      case Internal(lts, gts) =>
-        Internal(lts.map { case (k, v) => (k, map(v)(f)) }, map(gts)(f))
+      case Internal(maxK, lts, gts) =>
+        Internal(maxK, lts.map { case (k, v) => (k, map(v)(f)) }, map(gts)(f))
       case Leaf(mapping) => Leaf(mapping.map { case (k, v) => (k, f(v)) })
     }
   }
 
   implicit def foldableInstance[K: Ordering] = new Foldable[BTree[K, *]] {
     override def foldLeft[A, B](fa: BTree[K, A], b: B)(f: (B, A) => B): B = fa match {
-      case Internal(ltKs, gtK) =>
+      case Internal(maxK, ltKs, gtK) =>
         ltKs.foldLeft(foldLeft(gtK, b)(f)) { case (b, (_, bT)) => foldLeft(bT, b)(f) }
       case Leaf(myMapping) => myMapping.values.toList.foldl(b)(f)
     }
@@ -92,7 +103,7 @@ object BTree extends ChainingSyntax {
 
 }
 
-class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with ChainingSyntax {
+class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with Inside with ChainingSyntax {
 
   "Monoid" - {
     "empty leaf node must contain no elements" in {
@@ -110,27 +121,68 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with ChainingSyntax 
       val tree = (Leaf(Map.empty): BTree[Int, Int])
         .combine(Leaf(LazyList.from(0).take(5).map(x => (x, x)).toMap))
 
-      BTree.foldLeftWithKeys(tree, List.empty[(Int, Int)]) { case (b, (k, a)) => b.appended((k, a)) } mustEqual
+      BTree.foldLeftWithKeys(tree, List.empty[(Int, Int)]) { case (b, (k, a)) => b.appended((k, a)) } must contain theSameElementsAs
         LazyList.from(0).take(5).map(x => (x, x))
     }
 
-    "combining way too full of leaves to be reasonable" in {
+    "combining lists" in {
       val res1 = (Leaf(Map.empty): BTree[Int, Int])
-        .combine(Leaf(LazyList.from(0).take(10).map(x => (x, x)).toMap))
+        .combine(Leaf(LazyList.from(0).take(8).map(x => (x, x)).toMap))
 
       val res2 = (Leaf(Map.empty): BTree[Int, Int])
-        .combine(Leaf(LazyList.from(10).take(10).map(x => (x, x)).toMap))
+        .combine(Leaf(LazyList.from(8).take(8).map(x => (x, x)).toMap))
 
-      val res3 = (Leaf(Map.empty): BTree[Int, Int])
-        .combine(Leaf(LazyList.from(20).take(10).map(x => (x, x)).toMap))
-
-      res1.combine(res2).combine(res3).tap(pprint.log(_)).foldl(Set.empty[Int]) { case (a, b) => a.+(b) } mustEqual (0 until 30).toSet
+      res1.combine(res2).foldl(Set.empty[Int]) { case (a, b) => a.+(b) } mustEqual (0 until 16).toSet
     }
+
   }
 
   "Insert" - {
     "inserting into empty" in {
       Monoid[BTree[String, String]].empty.pipe(BTree.insert(_)("hey", "y'all")) mustBe Leaf(Map("hey" -> "y'all"))
+    }
+    "bTrees should keep things less than maxK in the lessThanK and greater than maxK in the greatherThanK" in {
+      def validate[K, V](bTree: BTree[K, V])(implicit ord: Ordering[K]): Unit = {
+        import ord.mkOrderingOps
+        bTree match {
+          case Internal(maxK, thingsWithLessThanKCanBeFoundHere, thingsWithMoreThanKCanBeFoundHere) =>
+            inside(thingsWithLessThanKCanBeFoundHere)(_.keySet.max must (be <= maxK))
+            inside(thingsWithMoreThanKCanBeFoundHere)(
+              BTree.foldLeftWithKeys(_, Set.empty[K]) { case (b, (k, v)) => b + k }.maxOption.map(_ must (be > maxK)))
+            validate(thingsWithMoreThanKCanBeFoundHere)
+            thingsWithLessThanKCanBeFoundHere.foreach(x => validate(x._2))
+
+          case Leaf(myMapping) => ()
+        }
+      }
+
+      val res1 = (Leaf(Map.empty): BTree[Int, Int])
+        .combine(Leaf(LazyList.from(0).take(15).map(x => (x, x)).toMap))
+
+      val res2 = (Leaf(Map.empty): BTree[Int, Int])
+        .combine(Leaf(LazyList.from(15).take(15).map(x => (x, x)).toMap))
+
+      validate(res1.combine(res2).tap(pprint.log(_, height=100)))
+    }
+
+    "bTree internal nodes should not have more than the reasonableBranchingFactor number of internal nodes" in {
+      def validate[K, V](bTree: BTree[K, V])(implicit ord: Ordering[K]): Unit = {
+        import ord.mkOrderingOps
+        bTree match {
+          case Internal(maxK, thingsWithLessThanKCanBeFoundHere, thingsWithMoreThanKCanBeFoundHere) =>
+            inside(thingsWithLessThanKCanBeFoundHere)(_.size must be <= BTree.reasonableBranchingFactor)
+            thingsWithLessThanKCanBeFoundHere.foreach(x => validate(x._2))
+          case Leaf(myMapping) => ()
+        }
+      }
+      val res1 = (Leaf(Map.empty): BTree[Int, Int])
+        .combine(Leaf(LazyList.from(0).take(5).map(x => (x, x)).toMap))
+
+      val res2 = (Leaf(Map.empty): BTree[Int, Int])
+        .combine(Leaf(LazyList.from(5).take(5).map(x => (x, x)).toMap))
+
+      validate(res1.combine(res2).tap(pprint.log(_)))
+
     }
   }
 
