@@ -1,6 +1,5 @@
 package labs.data
 
-import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.freespec.AnyFreeSpec
 import cats._
 import cats.data._
@@ -8,8 +7,6 @@ import org.scalatest.matchers.must.Matchers
 import cats.implicits._
 import org.scalatest.{Assertion, Inside}
 
-import org.scalacheck.Properties
-import org.scalacheck.Prop.forAll
 import scala.util.ChainingSyntax
 
 /**
@@ -22,8 +19,6 @@ import scala.util.ChainingSyntax
   * - Self Balancing
   * - Maintains Sort ordering
   */
-object BTreesAndJoins {}
-
 sealed trait BTree[K, V]
 final case class Internal[K: Ordering, V](
     // For each K in Map, we push all the elements ordered earlier than each K down to subtrees
@@ -36,7 +31,7 @@ final case class Leaf[K, V](myMapping: Map[K, V]) extends BTree[K, V]
 object BTree extends ChainingSyntax {
   val reasonableBranchingFactor: Int = Math.pow(2, 3).toInt
 
-  def empty[K, V] : BTree[K, V] = Leaf(Map.empty[K, V])
+  def empty[K, V]: BTree[K, V] = Leaf(Map.empty[K, V])
 
   def insert[K, V](bT: BTree[K, V])(k: K, v: V)(implicit ord: Ordering[K]): BTree[K, V] = {
     import ord.mkOrderingOps
@@ -46,7 +41,7 @@ object BTree extends ChainingSyntax {
       case Leaf(myMapping) if myMapping.size == reasonableBranchingFactor && k >= myMapping.keySet.max =>
         val nextLayer =
           myMapping
-            .grouped(myMapping.size / reasonableBranchingFactor )
+            .grouped(myMapping.size / reasonableBranchingFactor)
             .map(m => (m.keySet.max, Leaf(m)))
             .toMap
         Internal(myMapping.keySet.max, nextLayer, Leaf(Map(k -> v)))
@@ -54,7 +49,7 @@ object BTree extends ChainingSyntax {
         val updatedMapping = myMapping.updated(k, v)
         val nextLayer =
           updatedMapping
-            .grouped(updatedMapping.size / (reasonableBranchingFactor /2))
+            .grouped(updatedMapping.size / (reasonableBranchingFactor / 2))
             .map(m => (m.keySet.max, Leaf(m)))
             .toMap
         Internal(updatedMapping.keySet.max, nextLayer, Leaf(Map()))
@@ -85,7 +80,7 @@ object BTree extends ChainingSyntax {
     }
   }
 
-  implicit def functorInstance[K: Ordering] = new Functor[BTree[K, *]] {
+  implicit def functorInstance[K: Ordering]: Functor[BTree[K, *]] = new Functor[BTree[K, *]] {
     override def map[A, B](fa: BTree[K, A])(f: A => B): BTree[K, B] = fa match {
       case Internal(maxK, lts, gts) =>
         Internal(maxK, lts.map { case (k, v) => (k, map(v)(f)) }, map(gts)(f))
@@ -93,7 +88,7 @@ object BTree extends ChainingSyntax {
     }
   }
 
-  implicit def foldableInstance[K: Ordering] = new Foldable[BTree[K, *]] {
+  implicit def foldableInstance[K: Ordering]: Foldable[BTree[K, *]] = new Foldable[BTree[K, *]] {
     override def foldLeft[A, B](fa: BTree[K, A], b: B)(f: (B, A) => B): B = fa match {
       case Internal(maxK, ltKs, gtK) =>
         ltKs.foldLeft(foldLeft(gtK, b)(f)) { case (b, (_, bT)) => foldLeft(bT, b)(f) }
@@ -136,7 +131,7 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with Inside with Cha
       res1.combine(res2).foldl(Set.empty[Int]) { case (a, b) => a.+(b) } mustEqual (0 until 16).toSet
     }
 
-    "combining really biglists" in {
+    "combining really big lists" in {
       val res1 = (Leaf(Map.empty): BTree[Int, Int])
         .combine(Leaf(LazyList.from(0).take(50).map(x => (x, x)).toMap))
 
@@ -200,14 +195,14 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with Inside with Cha
   }
 
   "visualizing bTrees that point to pages of records" in {
-    def mkPage(letter: String) : List[String] = LazyList.continually(letter).take(10).toList
 
     val emptyPageTree = BTree.empty[Char, List[String]]
 
     val indexedPages = ('a' to 'z').map(char => char -> List.fill(10)(char.toString)).toList
 
-
-    val completeBTree = indexedPages.foldl(emptyPageTree){case (bTree, (char, page)) =>  BTree.insert(bTree)(char, page)}
+    val completeBTree = indexedPages.foldl(emptyPageTree) {
+      case (bTree, (char, page)) => BTree.insert(bTree)(char, page)
+    }
 
     pprint.log(completeBTree)
 
