@@ -111,7 +111,7 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with Inside with Cha
     }
     "combining leaf nodes which are smaller than reasonableBranchingFactor" in {
       (Leaf(Map(1 -> "a")): BTree[Int, String])
-        .combine(Leaf(Map(2 -> "b"))) mustBe Leaf(Map(1 -> "a", 2 -> "b"))
+        .combine(Leaf(Map(2 -> "b"))).tap(pprint.log(_)) mustBe Leaf(Map(1 -> "a", 2 -> "b"))
     }
     "foldLeftWithKeys should resolve into a list containing all elements" in {
       val tree = (Leaf(Map.empty): BTree[Int, Int])
@@ -189,7 +189,7 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with Inside with Cha
       val res2 = (Leaf(Map.empty): BTree[Int, Int])
         .combine(Leaf(LazyList.from(50).take(50).map(x => (x, x)).toMap))
 
-      validate(res1.combine(res2))
+      validate(res1.combine(res2).tap(pprint.log(_, height =1000)))
 
     }
   }
@@ -204,7 +204,7 @@ class BTreesAndJoinsTests extends AnyFreeSpec with Matchers with Inside with Cha
       case (bTree, (char, page)) => BTree.insert(bTree)(char, page)
     }
 
-    pprint.log(completeBTree)
+//    pprint.log(completeBTree)
 
     succeed
 

@@ -33,7 +33,7 @@ lazy val root = (project in file("."))
       "-Xlint:type-parameter-shadow", // A local type parameter shadows a type already in scope.
       "-Ywarn-extra-implicit", // Warn when more than one implicit parameter section is defined.
       "-Ywarn-numeric-widen", // Warn when numerics are widened.
-      "-Ywarn-unused:implicits", // Warn if an implicit parameter is unused.
+      // "-Ywarn-unused:implicits", // Warn if an implicit parameter is unused.
       "-Ywarn-value-discard", // Warn when non-Unit expression results are unused.
       "-Ybackend-parallelism",
       "8", // Enable paralellisation — change to desired number!
@@ -47,7 +47,8 @@ lazy val root = (project in file("."))
       "io.higherkindness" %% "droste-core"              % "0.8.0",
       "org.scalatestplus" %% "scalatestplus-scalacheck" % "3.1.0.0-RC2",
       "org.scalatest"     %% "scalatest"                % "3.2.0-M1" % Test,
-      "org.scalacheck"    %% "scalacheck"               % "1.14.1" % Test),
+      "org.scalacheck"    %% "scalacheck"               % "1.14.1" % Test,
+      "org.typelevel"     %% "simulacrum"               % "1.0.0"),
     scalafmtOnCompile := false,
     // FYI: https://www.scala-sbt.org/1.0/docs/Using-Sonatype.html
     publishTo := {
@@ -80,7 +81,6 @@ lazy val root = (project in file("."))
   .settings(mimaSettings)
 
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full)
-
 
 val mimaSettings = MimaPlugin.mimaDefaultSettings ++ Seq(mimaPreviousArtifacts := {
   val previousVersions: Set[String] = Set.empty // e.g. Set("0.1.0", "0.1.1")
