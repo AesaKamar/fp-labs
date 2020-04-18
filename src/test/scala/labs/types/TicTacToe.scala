@@ -8,7 +8,7 @@ object TicTacToe {
 trait Exists
 
 val          iExist              : Exists = new Exists {}
-implicit val iExistToTheCompiler : Exists = new Exists {}
+//implicit val iExistToTheCompiler : Exists = new Exists {}
 
 
 
@@ -66,11 +66,16 @@ implicitly[Exists] // ⌘⇧P
   // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+// TODO
+// Make some types to hold onto information about:
+//  Who are players
+//  Where a player made a move
+
+
+
   trait Player
   trait X extends Player
   trait O extends Player
-
-
 
 //  implicit val aWinnerIsX = new Winner[X] {}
 
@@ -81,7 +86,29 @@ implicitly[Exists] // ⌘⇧P
 
 
 
+
+
+
+
+
+
+// TODO
+// Make some types to hold onto information about:
+//  Where a player made a move
+
+
   sealed trait PlayerMove
+
+
+
+
+
+
+
+
+
+
+
   trait `↖`[A <: Player]; trait `↑`[A <: Player]; trait `↗`[A <: Player];
 
   trait `←`[A <: Player]; trait `△`[A <: Player]; trait `→`[A <: Player];
@@ -105,12 +132,23 @@ implicitly[Exists] // ⌘⇧P
 
 
 
-  // How do I know if I won
+  // TODO
+  // Find a way to logically connect a bunch of PlayerMoves with a Winner?
+  //  Give some examples of ways to win
 
   sealed trait ThreeConnect[A <: Player]
   trait DiagonalConnect    [A <: Player] extends ThreeConnect[A]
   trait HorizontalConnect  [A <: Player] extends ThreeConnect[A]
   trait VerticalConnect    [A <: Player] extends ThreeConnect[A]
+
+
+
+
+
+
+
+
+
 
 
 
@@ -126,6 +164,11 @@ implicitly[Exists] // ⌘⇧P
   implicit val xConnected3Diagonally : ThreeConnect[X] = new DiagonalConnect[X] {}
 
 
+
+
+
+
+// ^^^^^^^^^^^^^^^^^^^^^^ TYPECHECK
 
 
 
@@ -170,6 +213,12 @@ implicitly[Exists] // ⌘⇧P
 
 
 
+
+
+
+
+
+  // ^^^^^^^^^^^^^^^^^^^^^^^ TYPECHECK
 
 
 
